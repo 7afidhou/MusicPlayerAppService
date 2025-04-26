@@ -14,7 +14,7 @@
             android:name="flutterEmbedding"
             android:value="2" />
         <activity
-            android:name="com.ryanheise.audioservice.AudioServiceActivity"
+            android:name=".MainActivity"
             android:exported="true"
             android:launchMode="singleTop"
             android:theme="@style/LaunchTheme"
@@ -27,14 +27,22 @@
             </intent-filter>
         </activity>
         <!-- Service for AudioService (no need for Activity here) -->
-        <service 
+        <!-- <service 
             android:name="com.ryanheise.audioservice.AudioService"
             android:foregroundServiceType="mediaPlayback"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.media.browse.MediaBrowserService" />
             </intent-filter>
-        </service>
+        </service> -->
+<service
+    android:name=".service.MusicService"
+    android:exported="true"
+    android:foregroundServiceType="mediaPlayback">
+    <intent-filter>
+        <action android:name="com.example.testproject.PLAY_MUSIC" />
+    </intent-filter>
+</service>
 
         <!-- Media Button Receiver for handling media controls -->
         <receiver android:name="com.ryanheise.audioservice.MediaButtonReceiver"
