@@ -98,14 +98,6 @@ class MusicHomePage extends StatelessWidget {
               child: const Text('Cancel Music Notification'),
             ),
             const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () => _updateNotificationAction("play"),
-              child: const Text('Play Music'),
-            ),
-            ElevatedButton(
-              onPressed: () => _updateNotificationAction("pause"),
-              child: const Text('Pause Music'),
-            ),
           ],
         ),
       ),
