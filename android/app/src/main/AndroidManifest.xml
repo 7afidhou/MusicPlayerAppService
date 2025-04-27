@@ -48,12 +48,14 @@
 </service>
 
         <!-- Media Button Receiver for handling media controls -->
-        <receiver android:name="com.ryanheise.audioservice.MediaButtonReceiver"
+        <!-- <receiver android:name="com.ryanheise.audioservice.MediaButtonReceiver"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MEDIA_BUTTON" />
             </intent-filter>
-        </receiver>
+        </receiver> -->
+<receiver android:name=".MusicActionReceiver" android:exported="true" />
+
 
         <!-- MainActivity Declaration (your entry point) -->
 
