@@ -1,8 +1,51 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:permission_handler/permission_handler.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await _requestNotificationPermission();
   runApp(const MyApp());
+}
+
+Future<void> _requestNotificationPermission() async {
+  var status = await Permission.notification.status;
+  if (!status.isGranted) {
+    await Permission.notification.request();
+  }
+}
+
+class MusicNotification {
+  static const MethodChannel _channel = MethodChannel('music_notification');
+
+  static Future<void> showNotification(String title, String artist) async {
+    try {
+      await _channel.invokeMethod('showNotification', {
+        'title': title,
+        'artist': artist,
+      });
+    } catch (e) {
+      print("Error showing notification: $e");
+    }
+  }
+
+  static Future<void> cancelNotification() async {
+    try {
+      await _channel.invokeMethod('cancelNotification');
+    } catch (e) {
+      print("Error cancelling notification: $e");
+    }
+  }
+
+  static Future<void> updateNotificationAction(String action) async {
+    try {
+      await _channel.invokeMethod('updateNotificationAction', {
+        'action': action,
+      });
+    } catch (e) {
+      print("Error updating notification action: $e");
+    }
+  }
 }
 
 class MyApp extends StatelessWidget {
@@ -10,90 +53,61 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(home: MusicPlayerScreen());
+    return MaterialApp(
+      title: 'Music Notification Demo',
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+      ),
+      home: const MusicHomePage(),
+    );
   }
 }
 
-class MusicPlayerScreen extends StatefulWidget {
-  @override
-  State<MusicPlayerScreen> createState() => _MusicPlayerScreenState();
-}
+class MusicHomePage extends StatelessWidget {
+  const MusicHomePage({super.key});
 
-class _MusicPlayerScreenState extends State<MusicPlayerScreen> {
-  static const platform = MethodChannel('music_service');
-
-  final List<String> songs = ['Song1.mp3', 'Song2.mp3'];
-  int currentIndex = 0;
-
-  Future<void> playMusic(int index) async {
-    try {
-      await platform.invokeMethod('playMusic', {'filename': songs[index]});
-    } on PlatformException catch (e) {
-      print("Failed to play music: ${e.message}");
-    }
+  void _showMusicNotification() {
+    MusicNotification.showNotification("Awesome Song", "Cool Artist");
   }
 
-  Future<void> pauseMusic() async {
-    try {
-      await platform.invokeMethod('pauseMusic');
-    } on PlatformException catch (e) {
-      print("Failed to pause music: ${e.message}");
-    }
+  void _cancelMusicNotification() {
+    MusicNotification.cancelNotification();
   }
 
-  Future<void> stopMusic() async {
-    try {
-      await platform.invokeMethod('stopMusic');
-    } on PlatformException catch (e) {
-      print("Failed to stop music: ${e.message}");
-    }
+  void _updateNotificationAction(String action) {
+    MusicNotification.updateNotificationAction(action);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Music Player')),
-      body: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text('Now playing: ${songs[currentIndex]}'),
-          const SizedBox(height: 20),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              IconButton(
-                icon: const Icon(Icons.skip_previous),
-                onPressed: () {
-                  setState(() {
-                    currentIndex = (currentIndex - 1 + songs.length) % songs.length;
-                  });
-                  playMusic(currentIndex);
-                },
-              ),
-              IconButton(
-                icon: const Icon(Icons.play_arrow),
-                onPressed: () => playMusic(currentIndex),
-              ),
-              IconButton(
-                icon: const Icon(Icons.pause),
-                onPressed: pauseMusic,
-              ),
-              IconButton(
-                icon: const Icon(Icons.stop),
-                onPressed: stopMusic,
-              ),
-              IconButton(
-                icon: const Icon(Icons.skip_next),
-                onPressed: () {
-                  setState(() {
-                    currentIndex = (currentIndex + 1) % songs.length;
-                  });
-                  playMusic(currentIndex);
-                },
-              ),
-            ],
-          )
-        ],
+      appBar: AppBar(
+        title: const Text('Music Notification Demo'),
+      ),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            ElevatedButton(
+              onPressed: _showMusicNotification,
+              child: const Text('Show Music Notification'),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: _cancelMusicNotification,
+              child: const Text('Cancel Music Notification'),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () => _updateNotificationAction("play"),
+              child: const Text('Play Music'),
+            ),
+            ElevatedButton(
+              onPressed: () => _updateNotificationAction("pause"),
+              child: const Text('Pause Music'),
+            ),
+          ],
+        ),
       ),
     );
   }

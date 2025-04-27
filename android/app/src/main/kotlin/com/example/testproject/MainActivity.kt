@@ -1,42 +1,106 @@
 package com.example.testproject
-import com.example.testproject.service.MusicService
+
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.content.Context
+import android.os.Build
 import android.content.Intent
-//import androidx.appcompat.app.AppCompatActivity
-import android.os.Bundle
+import android.app.PendingIntent
+import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
+import androidx.media.app.NotificationCompat.MediaStyle
 import io.flutter.embedding.android.FlutterActivity
+import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
-import android.util.Log
 
 class MainActivity : FlutterActivity() {
-    private val CHANNEL = "music_service"
+    private val CHANNEL = "music_notification"
+    private val NOTIFICATION_ID = 1
+    private val NOTIFICATION_CHANNEL_ID = "MUSIC_CHANNEL"
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
+    private var isPlaying = false
 
-        MethodChannel(flutterEngine?.dartExecutor?.binaryMessenger as io.flutter.plugin.common.BinaryMessenger, CHANNEL)
-            .setMethodCallHandler { call, result ->
-                when (call.method) {
-                    "playMusic" -> {
-                        val filename = call.argument<String>("filename")
-                        val intent = Intent(this, MusicService::class.java).apply {
-                            putExtra("songName", filename)
-                        }
-                        startService(intent)
-                        result.success("Started playing $filename")
-                    }
-                    "pauseMusic" -> {
-                        val intent = Intent(this, MusicService::class.java).apply {
-                            putExtra("action", "pause")
-                        }
-                        startService(intent)
-                        result.success("Paused music")
-                    }
-                    "stopMusic" -> {
-                        stopService(Intent(this, MusicService::class.java))
-                        result.success("Stopped music")
-                    }
-                    else -> result.notImplemented()
+    override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
+        super.configureFlutterEngine(flutterEngine)
+
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler { call, result ->
+            when (call.method) {
+                "showNotification" -> {
+                    val title = call.argument<String>("title") ?: "Unknown Title"
+                    val artist = call.argument<String>("artist") ?: "Unknown Artist"
+                    showMusicNotification(title, artist)
+                    result.success(null)
                 }
+                "cancelNotification" -> {
+                    cancelMusicNotification()
+                    result.success(null)
+                }
+                "updateNotificationAction" -> {
+                    val action = call.argument<String>("action")
+                    updateNotificationAction(action)
+                    result.success(null)
+                }
+                else -> result.notImplemented()
             }
+        }
+    }
+
+    private fun showMusicNotification(title: String, artist: String) {
+        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            if (notificationManager.getNotificationChannel(NOTIFICATION_CHANNEL_ID) == null) {
+                val channel = NotificationChannel(
+                    NOTIFICATION_CHANNEL_ID,
+                    "Music Playback",
+                    NotificationManager.IMPORTANCE_LOW
+                )
+                notificationManager.createNotificationChannel(channel)
+            }
+        }
+
+        val playPauseAction = if (isPlaying) {
+            NotificationCompat.Action(
+                android.R.drawable.ic_media_pause,
+                "Pause",
+                getPendingIntent("pause")
+            )
+        } else {
+            NotificationCompat.Action(
+                android.R.drawable.ic_media_play,
+                "Play",
+                getPendingIntent("play")
+            )
+        }
+
+        val notification = NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID)
+            .setContentTitle(title)
+            .setContentText(artist)
+            .setSmallIcon(android.R.drawable.ic_media_play)
+            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setOngoing(true)
+            .addAction(playPauseAction)
+            .setStyle(MediaStyle().setShowActionsInCompactView(0))
+            .build()
+
+        notificationManager.notify(NOTIFICATION_ID, notification)
+    }
+
+    private fun getPendingIntent(action: String) =
+        PendingIntent.getBroadcast(this, 0, Intent(action), PendingIntent.FLAG_IMMUTABLE)
+
+    private fun updateNotificationAction(action: String?) {
+        if (action == "play") {
+            isPlaying = true
+        } else if (action == "pause") {
+            isPlaying = false
+        }
+
+        showMusicNotification("Awesome Song", "Cool Artist")
+    }
+
+    private fun cancelMusicNotification() {
+        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        notificationManager.cancel(NOTIFICATION_ID)
     }
 }
